@@ -9,7 +9,7 @@ import java.io.Serializable;
 /**
  * 创建请求
  *
- *  @author Liu
+ *  @author  Liu
  * 
  */
 @Data
@@ -18,6 +18,11 @@ public class ChartAddRequest implements Serializable {
      * 分析目标
      */
     private String goal;
+
+    /**
+     * 名称
+     */
+    private String name;
 
     /**
      * 图表数据

@@ -9,7 +9,7 @@ import java.io.Serializable;
 /**
  * 查询请求
  *
- *  @author Liu
+ *  @author  Liu
  * 
  */
 @EqualsAndHashCode(callSuper = true)
@@ -28,6 +28,10 @@ public class ChartQueryRequest extends PageRequest implements Serializable {
      */
     private String chartType;
 
+    /**
+     * 名称
+     */
+    private String name;
 
     private static final long serialVersionUID = 1L;
 }

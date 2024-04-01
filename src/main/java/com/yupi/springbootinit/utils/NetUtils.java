@@ -1,12 +1,12 @@
 package com.yupi.springbootinit.utils;
 
-import javax.servlet.http.HttpServletRequest;
 import java.net.InetAddress;
+import javax.servlet.http.HttpServletRequest;
 
 /**
  * 网络工具类
  *
- *  @author Liu
+ *  @author  Liu
  * 
  */
 public class NetUtils {
