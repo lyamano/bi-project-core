@@ -3,7 +3,7 @@ package com.yupi.springbootinit.constant;
 /**
  * 文件常量
  *
- *  @author  Liu
+ *  @author Liu
  * 
  */
 public interface FileConstant {

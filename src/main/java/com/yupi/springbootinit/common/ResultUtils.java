@@ -3,8 +3,7 @@ package com.yupi.springbootinit.common;
 /**
  * 返回工具类
  *
- *  @author  Liu
- * 
+ * @author Liu
  */
 public class ResultUtils {
 

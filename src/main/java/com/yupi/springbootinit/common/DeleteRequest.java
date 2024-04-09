@@ -1,13 +1,13 @@
 package com.yupi.springbootinit.common;
 
-import java.io.Serializable;
 import lombok.Data;
+
+import java.io.Serializable;
 
 /**
  * 删除请求
  *
- *  @author  Liu
- * 
+ * @author Liu
  */
 @Data
 public class DeleteRequest implements Serializable {

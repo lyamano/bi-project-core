@@ -3,7 +3,7 @@ package com.yupi.springbootinit.constant;
 /**
  * 通用常量
  *
- *  @author  Liu
+ *  @author Liu
  * 
  */
 public interface CommonConstant {

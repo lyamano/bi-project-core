@@ -7,7 +7,7 @@ import com.yupi.springbootinit.model.entity.User;
 /**
  * 帖子点赞服务
  *
- *  @author  Liu
+ *  @author Liu
  * 
  */
 public interface PostThumbService extends IService<PostThumb> {

@@ -26,7 +26,7 @@ import org.springframework.web.multipart.MultipartFile;
 /**
  * 文件接口
  *
- *  @author  Liu
+ *  @author Liu
  * 
  */
 @RestController

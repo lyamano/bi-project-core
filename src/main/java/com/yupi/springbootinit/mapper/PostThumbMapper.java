@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 /**
  * 帖子点赞数据库操作
  *
- *  @author  Liu
+ *  @author Liu
  * 
  */
 public interface PostThumbMapper extends BaseMapper<PostThumb> {

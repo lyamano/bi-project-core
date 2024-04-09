@@ -7,7 +7,7 @@ import lombok.Data;
 /**
  * 编辑请求
  *
- *  @author  Liu
+ *  @author Liu
  * 
  */
 @Data

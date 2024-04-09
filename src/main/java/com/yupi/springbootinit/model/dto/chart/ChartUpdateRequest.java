@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * 更新请求
  *
- *  @author  Liu
+ *  @author Liu
  * 
  */
 @Data

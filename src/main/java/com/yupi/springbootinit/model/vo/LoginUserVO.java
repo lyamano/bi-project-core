@@ -7,7 +7,7 @@ import lombok.Data;
 /**
  * 已登录用户视图（脱敏）
  *
- *  @author  Liu
+ *  @author Liu
  * 
  **/
 @Data

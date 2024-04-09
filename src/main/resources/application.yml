@@ -1,6 +1,6 @@
 # 公共配置文件
-#  @author  Liu
-
+#  @author Liu
+# 
 spring:
   application:
     name: bi-project-core

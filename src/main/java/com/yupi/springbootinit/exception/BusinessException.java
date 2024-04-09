@@ -5,7 +5,7 @@ import com.yupi.springbootinit.common.ErrorCode;
 /**
  * 自定义异常类
  *
- *  @author  Liu
+ *  @author Liu
  * 
  */
 public class BusinessException extends RuntimeException {

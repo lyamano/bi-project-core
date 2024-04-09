@@ -11,7 +11,7 @@ import java.io.Serializable;
 /**
  * 编辑请求
  *
- *  @author  Liu
+ *  @author Liu
  * 
  */
 @Data

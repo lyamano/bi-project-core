@@ -11,7 +11,7 @@ import com.yupi.springbootinit.model.entity.User;
 /**
  * 帖子收藏服务
  *
- *  @author  Liu
+ *  @author Liu
  * 
  */
 public interface PostFavourService extends IService<PostFavour> {

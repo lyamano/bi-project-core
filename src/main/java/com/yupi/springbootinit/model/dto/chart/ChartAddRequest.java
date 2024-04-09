@@ -9,7 +9,7 @@ import java.io.Serializable;
 /**
  * 创建请求
  *
- *  @author  Liu
+ *  @author Liu
  * 
  */
 @Data

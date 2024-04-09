@@ -11,7 +11,7 @@ import lombok.Data;
 /**
  * 帖子收藏
  *
- *  @author  Liu
+ *  @author Liu
  * 
  **/
 @TableName(value = "post_favour")

@@ -20,7 +20,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 /**
  * 权限校验 AOP
  *
- *  @author  Liu
+ *  @author Liu
  * 
  */
 @Aspect

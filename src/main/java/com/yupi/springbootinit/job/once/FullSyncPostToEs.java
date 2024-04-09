@@ -14,7 +14,7 @@ import org.springframework.boot.CommandLineRunner;
 /**
  * 全量同步帖子到 es
  *
- *  @author  Liu
+ *  @author Liu
  * 
  */
 // todo 取消注释开启任务
