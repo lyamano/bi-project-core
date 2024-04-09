@@ -1,6 +1,10 @@
-# 公共配置文件
-#  @author Liu
-# 
+# openai 配置项
+openai.model: gpt-3.5-turbo
+openai.api.key:
+openai.api.url:
+proxy.port: 7890
+proxy.host: 127.0.0.1
+
 spring:
   application:
     name: bi-project-core
