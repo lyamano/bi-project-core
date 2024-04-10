@@ -13,6 +13,7 @@ import com.yupi.springbootinit.constant.CommonConstant;
 import com.yupi.springbootinit.constant.UserConstant;
 import com.yupi.springbootinit.exception.BusinessException;
 import com.yupi.springbootinit.exception.ThrowUtils;
+import com.yupi.springbootinit.manager.RedisLimiterManager;
 import com.yupi.springbootinit.model.dto.chart.*;
 import com.yupi.springbootinit.model.entity.Chart;
 import com.yupi.springbootinit.model.entity.User;
@@ -51,6 +52,9 @@ public class ChartController {
 
     @Resource
     private OpenaiService openaiService;
+
+    @Resource
+    private RedisLimiterManager redisLimiterManager;
 
     /**
      * 常见图表英文转中文
@@ -113,6 +117,8 @@ public class ChartController {
         String suffix = FileUtil.getSuffix(fileName);
         final List<String> validFileSuffix = Arrays.asList("xlsx", "csv", "xls");
         ThrowUtils.throwIf(!validFileSuffix.contains(suffix), ErrorCode.PARAMS_ERROR, "文件后缀非法");
+        // 每个用户限流
+        redisLimiterManager.doRateLimit("genChartByAi" + loginUser.getId());
         // 构造用户输入
         StringBuilder userInput = new StringBuilder();
         userInput.append("分析需求：\n");
@@ -136,13 +142,13 @@ public class ChartController {
 
         // 插入数据库
         Chart chart = new Chart();
-        // 这一行
-        // 解析 genChart 为 JSON 对象
+
         JsonObject chartJson = null;
         String genChartName = "";
 
         try {
             chartJson = JsonParser.parseString(genChart).getAsJsonObject();
+            // todo 删除打印
             System.out.println(chartJson);
             genChartName = String.valueOf(chartJson.getAsJsonObject("title").get("text"));
         } catch (JsonSyntaxException e) {
