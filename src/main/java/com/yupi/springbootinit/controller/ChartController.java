@@ -13,6 +13,7 @@ import com.yupi.springbootinit.constant.CommonConstant;
 import com.yupi.springbootinit.constant.UserConstant;
 import com.yupi.springbootinit.exception.BusinessException;
 import com.yupi.springbootinit.exception.ThrowUtils;
+import com.yupi.springbootinit.manager.RedisCacheManager;
 import com.yupi.springbootinit.manager.RedisLimiterManager;
 import com.yupi.springbootinit.model.dto.chart.*;
 import com.yupi.springbootinit.model.entity.Chart;
@@ -27,6 +28,7 @@ import com.yupi.springbootinit.utils.SqlUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.redisson.api.RMap;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -38,9 +40,10 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 
+import static com.yupi.springbootinit.service.impl.OpenaiServiceImpl.SYNCHRO_MAX_TOKEN;
+
 /**
  * 图表接口
- *
  */
 @RestController
 @RequestMapping("/chart")
@@ -57,6 +60,9 @@ public class ChartController {
     private OpenaiService openaiService;
 
     @Resource
+    private RedisCacheManager redisCacheManager;
+
+    @Resource
     private RedisLimiterManager redisLimiterManager;
 
     @Resource
@@ -65,41 +71,6 @@ public class ChartController {
     @Resource
     private MessageProducer messageProducer;
 
-//    /**
-//     * 常见图表英文转中文
-//     * @param type
-//     * @return
-//     */
-//    private static String getChartTypeToCN(String type){
-//        switch (type){
-//            case "line":
-//                return "折线图";
-//            case "bar":
-//                return "柱状图";
-//            case "pie":
-//                return "饼图";
-//            case "scatter":
-//                return "散点图";
-//            case "radar":
-//                return "雷达图";
-//            case "map":
-//                return "地图";
-//            case "candlestick":
-//                return "K线图";
-//            case "heatmap":
-//                return "热力图";
-//            case "tree":
-//                return "树图";
-//            case "lines":
-//                return "路线图";
-//            case "graph":
-//                return "关系图";
-//            case "sunburst":
-//                return "旭日图";
-//            default:
-//                return "特殊图表";
-//        }
-//    }
 
     /**
      * 文件AI分析
@@ -122,7 +93,7 @@ public class ChartController {
         // 校验文件大小及后缀
         long size = multipartFile.getSize();
         final long TEN_MB = 10 * 1024 * 1024L;
-        ThrowUtils.throwIf(size > TEN_MB, ErrorCode.PARAMS_ERROR, "文件大小大于10M");
+        ThrowUtils.throwIf(size > TEN_MB, ErrorCode.PARAMS_ERROR, "文件大小大于1M");
         String fileName = multipartFile.getOriginalFilename();
         String suffix = FileUtil.getSuffix(fileName);
         final List<String> validFileSuffix = Arrays.asList("xlsx", "csv", "xls");
@@ -135,13 +106,22 @@ public class ChartController {
 
         // 拼接分析目标
         String userGoal = goal;
-            // 分析输入加入图表类型
+        // 分析输入加入图表类型
         if (StringUtils.isNotBlank(chartType))
             userGoal += ",请使用" + chartType;
         userInput.append(userGoal).append("\n");
         userInput.append("原始数据：\n");
-            // 压缩数据
+        // 压缩数据
         String userData = ExcelUtils.excel2Csv(multipartFile);
+        BiResponse biResponse = new BiResponse();
+        Chart chart = new Chart();
+        // 数据规模校验 gpt3.5分析时长超过30s
+        if (userData.length() > SYNCHRO_MAX_TOKEN){
+            biResponse.setGenChart("");
+            biResponse.setGenResult("large_size");
+            biResponse.setChartId(chart.getId());
+            return ResultUtils.success(biResponse);
+        }
         userInput.append(userData).append("\n");
         String result = openaiService.doChat(userInput.toString());
         String[] splits = result.split("【【【【【");
@@ -155,9 +135,6 @@ public class ChartController {
             genChart = genChart.replaceFirst("var\\s+option\\s*=\\s*", "");
         }
 
-        // 插入数据库
-        Chart chart = new Chart();
-
         JsonObject chartJson = null;
         String genChartName = "";
 
@@ -169,25 +146,25 @@ public class ChartController {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "json代码解析异常");
         }
         // 自动添加图表类型
-        if (StringUtils.isEmpty(chartType)){
+        if (StringUtils.isEmpty(chartType)) {
             JsonArray seriesArray = chartJson.getAsJsonArray("series");
-            for (JsonElement i : seriesArray){
+            for (JsonElement i : seriesArray) {
                 String typeChart = i.getAsJsonObject().get("type").getAsString();
                 String CnChartType = chartService.getChartTypeToCN(typeChart);
                 chart.setChartType(CnChartType);
                 System.out.println(CnChartType);
             }
-        }else
+        } else
             chart.setChartType(chartType);
         // 自动加入图表名称结尾并设置图表名称
-        if (StringUtils.isEmpty(name)){
+        if (StringUtils.isEmpty(name)) {
             try {
                 genChartName = String.valueOf(chartJson.getAsJsonObject("title").get("text"));
             } catch (JsonSyntaxException e) {
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "json代码不存在title字段");
             }
-            genChartName = genChartName.replace("\"","");
-            if (! genChartName.endsWith("图") || ! genChartName.endsWith("表"))
+            genChartName = genChartName.replace("\"", "");
+            if (!genChartName.endsWith("图") || !genChartName.endsWith("表"))
                 genChartName = genChartName + "图";
             System.out.println(genChartName);
             chart.setName(genChartName);
@@ -215,8 +192,7 @@ public class ChartController {
         boolean saveResult = chartService.save(chart);
         ThrowUtils.throwIf(!saveResult, ErrorCode.SYSTEM_ERROR, "图表保存失败");
         if (!saveResult)
-            handleChartUpdateError(chart.getId(),"图表信息保存失败");
-        BiResponse biResponse = new BiResponse();
+            handleChartUpdateError(chart.getId(), "图表信息保存失败");
         biResponse.setGenChart(updatedGenChart);
         biResponse.setGenResult(genResult);
         biResponse.setChartId(chart.getId());
@@ -225,10 +201,11 @@ public class ChartController {
 
     /**
      * 图表错误状态处理
+     *
      * @param chartId
      * @param execMessage
      */
-    private void handleChartUpdateError(long chartId, String execMessage){
+    private void handleChartUpdateError(long chartId, String execMessage) {
         Chart updateChart = new Chart();
         updateChart.setId(chartId);
         updateChart.setStatus("failed");
@@ -297,7 +274,7 @@ public class ChartController {
         biResponse.setChartId(chart.getId());
         log.info("还没异步操作");
         // TODO:   用try catch解决任务队列满了抛异常
-        CompletableFuture.runAsync(()->{
+        CompletableFuture.runAsync(() -> {
             log.info("进入异步操作");
             Chart updateChart = new Chart();
             updateChart.setId(chart.getId());
@@ -534,7 +511,7 @@ public class ChartController {
      */
     @PostMapping("/list/page")
     public BaseResponse<Page<Chart>> listchartByPage(@RequestBody ChartQueryRequest chartQueryRequest,
-            HttpServletRequest request) {
+                                                     HttpServletRequest request) {
         long current = chartQueryRequest.getCurrent();
         long size = chartQueryRequest.getPageSize();
         // 限制爬虫
@@ -553,7 +530,7 @@ public class ChartController {
      */
     @PostMapping("/my/list/page")
     public BaseResponse<Page<Chart>> listMychartByPage(@RequestBody ChartQueryRequest chartQueryRequest,
-            HttpServletRequest request) {
+                                                       HttpServletRequest request) {
         if (chartQueryRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -563,12 +540,27 @@ public class ChartController {
         long size = chartQueryRequest.getPageSize();
         // 限制爬虫
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
+        //Page<Chart> chartPage = chartService.page(new Page<>(current, size),
+        //getQueryWrapper(chartQueryRequest));
+        String cacheKey = "ChartController_listMyChartVOByPage_" + chartQueryRequest.getId();
+        RMap<String, Object> cachedResult = redisCacheManager.getCachedResult(cacheKey);
+
+        if (cachedResult.size() > 0) {
+            // 如果缓存中有结果，则直接返回缓存的结果
+            Page<Chart> chartPage = (Page<Chart>) cachedResult.get(cacheKey);
+            return ResultUtils.success(chartPage);
+        }
+
+        // 如果缓存中没有结果，则查询数据库
         Page<Chart> chartPage = chartService.page(new Page<>(current, size),
                 getQueryWrapper(chartQueryRequest));
+
+        // 将查询结果放入缓存
+        redisCacheManager.asyncPutCachedResult(cacheKey, chartPage);
+
         return ResultUtils.success(chartPage);
     }
 
-    // endregion
 
     /**
      * 编辑（用户）
